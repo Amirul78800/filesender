@@ -1,24 +1,29 @@
 #!/bin/bash
 set -e
 
-# Guna config_sample.php sebagai template
-if [ -f /var/www/html/config/config_sample.php ]; then
-    TEMPLATE_PATH="/var/www/html/config/config_sample.php"
-else
-    echo "ERROR: No config template found (config_sample.php missing)!"
-    exit 1
-fi
-
-# Jika config.php belum wujud, salin dari template
+# Jika config.php belum wujud, cipta dari config.default.php
 if [ ! -f /var/www/html/config/config.php ]; then
-    cp "$TEMPLATE_PATH" /var/www/html/config/config.php
-    echo "Config file created from config_sample.php"
-    echo "Please edit /var/www/html/config/config.php with your database details."
-    chown www-data:www-data /var/www/html/config/config.php
+    if [ -f /var/www/html/config/config.default.php ]; then
+        cp /var/www/html/config/config.default.php /var/www/html/config/config.php
+        echo "✅ Config file created from config.default.php"
+    else
+        echo "⚠️ Warning: config.default.php not found!"
+    fi
 fi
 
-# Set ownership untuk direktori yang diperlukan
-mkdir -p /var/www/html/data /var/www/html/tmp
-chown -R www-data:www-data /var/www/html/config /var/www/html/data /var/www/html/tmp 2>/dev/null || true
+# Cipta direktori yang diperlukan
+mkdir -p /var/www/html/data/files /var/www/html/tmp
+
+# Set permissions yang betul
+chown -R www-data:www-data /var/www/html/config /var/www/html/data /var/www/html/tmp
+chmod -R 755 /var/www/html
+chmod -R 775 /var/www/html/config /var/www/html/data /var/www/html/tmp
+
+# Betulkan DocumentRoot ke folder www
+sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/www|g' /etc/apache2/sites-available/000-default.conf
+sed -i 's|<Directory /var/www/html>|<Directory /var/www/html/www>|g' /etc/apache2/sites-available/000-default.conf
+
+echo "✅ FileSender container ready"
+echo "🌐 Access at http://localhost:80"
 
 exec "$@"
